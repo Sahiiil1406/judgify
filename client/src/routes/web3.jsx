@@ -1,12 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
 
-export const Route = createFileRoute('/web3')({
-  component: web3,
-})
-
-function RouteComponent() {
-  return <div>Hello "/web3"!</div>
-}
 import React, { useState, useEffect } from "react";
 import {
   FileCode,
@@ -24,8 +17,13 @@ import {
 import { fetchAndLoadSolc } from "web-solc";
 import Ganache from "ganache";
 import { ethers } from "ethers";
+// import { createFileRoute } from '@tanstack/react-router';
 
-const web3 = () => {
+export const Route = createFileRoute('/web3')({
+  component: Web3Component,
+});
+
+function Web3Component() {
   const [provider, setProvider] = useState(null);
   const [code, setCode] = useState(`// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
@@ -73,7 +71,6 @@ contract SimpleStorage {
     addOutput("Solidity IDE ready (WASM compiler supported)", "info");
   }, []);
 
-  // Initialize Ethereum provider
   useEffect(() => {
     const options = {
       logging: { quiet: true },
@@ -84,7 +81,6 @@ contract SimpleStorage {
     console.log("✅ Ganache (npm) initialized:", ganacheProvider);
   }, []);
 
-  // ---------------- COMPILE ----------------
   const compile = async () => {
     setCompiling(true);
     setErrors([]);
@@ -111,9 +107,7 @@ contract SimpleStorage {
 
       if (outputJSON.errors?.length) {
         const errorList = outputJSON.errors.filter((e) => e.severity === "error");
-        const warningList = outputJSON.errors.filter(
-          (e) => e.severity === "warning"
-        );
+        const warningList = outputJSON.errors.filter((e) => e.severity === "warning");
 
         if (errorList.length) {
           setErrors(errorList);
@@ -153,7 +147,6 @@ contract SimpleStorage {
     setCompiling(false);
   };
 
-  // ---------------- ANALYSIS ----------------
   const analyzeContract = () => {
     if (!compiledData) {
       addOutput("Please compile the contract first", "warning");
@@ -173,8 +166,7 @@ contract SimpleStorage {
     if (code.includes("block.timestamp") || code.includes("now")) {
       issues.push({
         severity: "info",
-        message:
-          "Timestamp dependence found. Miners can manipulate block.timestamp slightly.",
+        message: "Timestamp dependence found. Miners can manipulate block.timestamp slightly.",
       });
     }
 
@@ -187,7 +179,6 @@ contract SimpleStorage {
     }
   };
 
-  // ---------------- TESTING ----------------
   const predefinedTests = [
     {
       name: "Set and Get Value",
@@ -242,8 +233,7 @@ contract SimpleStorage {
             if (test.verify.expectedType === "address") {
               passed = ethers.isAddress(actual);
             } else if (test.verify.expected !== undefined) {
-              passed =
-                actual.toString() === test.verify.expected.toString();
+              passed = actual.toString() === test.verify.expected.toString();
             }
           }
 
@@ -251,10 +241,7 @@ contract SimpleStorage {
             addOutput(`✅ ${test.name} passed`, "success");
             passCount++;
           } else {
-            addOutput(
-              `❌ ${test.name} failed (Got: ${actual})`,
-              "error"
-            );
+            addOutput(`❌ ${test.name} failed (Got: ${actual})`, "error");
           }
         } catch (err) {
           addOutput(`❌ ${test.name} error: ${err.message}`, "error");
@@ -272,7 +259,6 @@ contract SimpleStorage {
     setTesting(false);
   };
 
-  // ---------------- DOWNLOAD ----------------
   const downloadABI = () => {
     if (!compiledData) return;
     const blob = new Blob([JSON.stringify(compiledData.abi, null, 2)], {
@@ -299,120 +285,143 @@ contract SimpleStorage {
     addOutput("Downloaded Bytecode", "success");
   };
 
-  // ---------------- RENDER ----------------
   return (
-    <div className="h-screen bg-white flex flex-col">
+    <div className="h-screen bg-[#0a0a0a] flex flex-col">
       {/* Header */}
-      <header className="border-b border-gray-200 bg-white">
-        <div className="px-6 py-3 flex items-center justify-between">
+      <header className="border-b border-gray-800 bg-[#0f0f0f]">
+        <div className="px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
-              <Code2 className="text-[#34a85a]" size={24} />
-              <h1 className="text-lg font-semibold text-gray-800">CodeJudge</h1>
+              <div className="w-2 h-2 bg-[#00d9a3] rounded-full"></div>
+              <h1 className="text-lg font-semibold text-white tracking-wide">CODEJUDGE</h1>
             </div>
-            <ChevronRight size={16} className="text-gray-400" />
-            <span className="text-sm text-gray-600">Simple Storage Contract</span>
+            <ChevronRight size={16} className="text-gray-600" />
+            <span className="text-sm text-gray-400">Build a Simple Storage Contract</span>
           </div>
           <div className="flex items-center gap-3">
             <select
               value={compilerVersion}
               onChange={(e) => setCompilerVersion(e.target.value)}
-              className="bg-white text-gray-700 text-sm px-3 py-1.5 rounded border border-gray-300 focus:outline-none focus:ring-1 focus:ring-[#34a85a]"
+              className="bg-[#1a1a1a] text-gray-300 text-sm px-3 py-2 rounded border border-gray-700 focus:outline-none focus:border-[#00d9a3] transition-colors"
             >
               <option value="^0.8.20">Solidity v0.8.20</option>
               <option value="^0.8.19">Solidity v0.8.19</option>
               <option value="^0.8.18">Solidity v0.8.18</option>
               <option value="^0.8.17">Solidity v0.8.17</option>
             </select>
-            <Settings size={18} className="text-gray-500 cursor-pointer hover:text-gray-700" />
+            <button className="px-4 py-2 bg-[#00d9a3] text-black text-sm font-medium rounded hover:bg-[#00c490] transition-colors">
+              ENTER →
+            </button>
           </div>
         </div>
       </header>
 
       {/* Main Content */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Left Panel - Problem Description */}
-        <div className="w-1/2 border-r border-gray-200 flex flex-col bg-white">
-          {/* Tabs */}
-          <div className="flex border-b border-gray-200 bg-gray-50">
+        {/* Left Panel */}
+        <div className="w-1/2 border-r border-gray-800 flex flex-col bg-[#0a0a0a]">
+          <div className="flex border-b border-gray-800 bg-[#0f0f0f]">
             <button
               onClick={() => setActiveTab('description')}
-              className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+              className={`px-6 py-3 text-xs font-medium uppercase tracking-wider transition-colors ${
                 activeTab === 'description'
-                  ? 'border-[#34a85a] text-gray-900'
-                  : 'border-transparent text-gray-600 hover:text-gray-900'
+                  ? 'text-white border-b-2 border-[#00d9a3]'
+                  : 'text-gray-500 hover:text-gray-300'
               }`}
             >
               Description
             </button>
             <button
               onClick={() => setActiveTab('solution')}
-              className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+              className={`px-6 py-3 text-xs font-medium uppercase tracking-wider transition-colors ${
                 activeTab === 'solution'
-                  ? 'border-[#34a85a] text-gray-900'
-                  : 'border-transparent text-gray-600 hover:text-gray-900'
+                  ? 'text-white border-b-2 border-[#00d9a3]'
+                  : 'text-gray-500 hover:text-gray-300'
               }`}
             >
               Solution
             </button>
             <button
               onClick={() => setActiveTab('tests')}
-              className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+              className={`px-6 py-3 text-xs font-medium uppercase tracking-wider transition-colors ${
                 activeTab === 'tests'
-                  ? 'border-[#34a85a] text-gray-900'
-                  : 'border-transparent text-gray-600 hover:text-gray-900'
+                  ? 'text-white border-b-2 border-[#00d9a3]'
+                  : 'text-gray-500 hover:text-gray-300'
               }`}
             >
-              Test Cases
+              Submissions
             </button>
           </div>
 
-          {/* Content Area */}
-          <div className="flex-1 overflow-y-auto p-6">
+          <div className="flex-1 overflow-y-auto p-8 w-full">
             {activeTab === 'description' && (
-              <div className="space-y-6">
+              <div className="space-y-8">
                 <div>
-                  <h2 className="text-2xl font-semibold text-gray-900 mb-2">
+                  <h2 className="text-2xl font-semibold text-white mb-3">
                     Simple Storage Contract
                   </h2>
-                  <div className="flex gap-2 mb-4">
-                    <span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded">Easy</span>
-                    <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded">Smart Contracts</span>
+                  <div className="flex gap-2 mb-6">
+                    <span className="px-3 py-1 bg-[#00d9a3] bg-opacity-10 text-[#00d9a3] text-xs font-medium rounded border border-[#00d9a3] border-opacity-30">EASY</span>
+                    <span className="px-3 py-1 bg-gray-800 bg-opacity-50 text-gray-400 text-xs font-medium rounded border border-gray-700">Web3</span>
                   </div>
                 </div>
 
-                <div className="space-y-4 text-gray-700 leading-relaxed">
+                <div className="space-y-6 text-gray-300 leading-relaxed">
                   <p>
-                    Write a Solidity smart contract that implements a simple storage mechanism. The contract should allow users to store and retrieve an unsigned integer value.
+                    Create a Solidity smart contract that implements a simple storage mechanism. The contract should allow users to store and retrieve an unsigned integer value.
                   </p>
 
                   <div>
-                    <h3 className="font-semibold text-gray-900 mb-2">Requirements:</h3>
-                    <ul className="list-disc list-inside space-y-1 ml-2">
-                      <li>Create a <code className="bg-gray-100 px-1 py-0.5 rounded text-sm">uint256</code> variable to store the value</li>
-                      <li>Implement a <code className="bg-gray-100 px-1 py-0.5 rounded text-sm">set()</code> function to update the stored value</li>
-                      <li>Implement a <code className="bg-gray-100 px-1 py-0.5 rounded text-sm">get()</code> function to retrieve the current value</li>
-                      <li>Store the contract owner's address on deployment</li>
-                      <li>Emit an event when the value is updated</li>
+                    <h3 className="font-semibold text-white mb-3 uppercase text-sm tracking-wide">Requirements</h3>
+                    <ul className="space-y-2 text-sm">
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#00d9a3] mt-1">→</span>
+                        <span>Create a <code className="bg-[#1a1a1a] px-2 py-0.5 rounded text-[#00d9a3]">uint256</code> variable to store the value</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#00d9a3] mt-1">→</span>
+                        <span>Implement a <code className="bg-[#1a1a1a] px-2 py-0.5 rounded text-[#00d9a3]">set()</code> function to update the stored value</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#00d9a3] mt-1">→</span>
+                        <span>Implement a <code className="bg-[#1a1a1a] px-2 py-0.5 rounded text-[#00d9a3]">get()</code> function to retrieve the current value</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#00d9a3] mt-1">→</span>
+                        <span>Store the contract owner's address on deployment</span>
+                      </li>
+                      {/* <li className="flex items-start gap-2">
+                        <span className="text-[#00d9a3] mt-1">→</span>
+                        <span>Emit an event when the value is updated</span>
+                      </li> */}
                     </ul>
                   </div>
 
                   <div>
-                    <h3 className="font-semibold text-gray-900 mb-2">Example:</h3>
-                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 font-mono text-sm space-y-1">
-                      <div><span className="text-gray-600">// Deploy contract</span></div>
-                      <div><span className="text-blue-600">set</span>(123) <span className="text-gray-600">// Store value</span></div>
-                      <div><span className="text-blue-600">get</span>() → returns 123</div>
-                      <div><span className="text-blue-600">getOwner</span>() → returns deployer address</div>
+                    <h3 className="font-semibold text-white mb-3 uppercase text-sm tracking-wide">Example</h3>
+                    <div className="bg-[#0f0f0f] border border-gray-800 rounded p-4 font-mono text-sm space-y-1">
+                      <div><span className="text-gray-500">// Deploy contract</span></div>
+                      <div><span className="text-[#00d9a3]">set</span>(123) <span className="text-gray-500">// Store value</span></div>
+                      <div><span className="text-[#00d9a3]">get</span>() → returns 123</div>
+                      <div><span className="text-[#00d9a3]">getOwner</span>() → returns deployer address</div>
                     </div>
                   </div>
 
                   <div>
-                    <h3 className="font-semibold text-gray-900 mb-2">Constraints:</h3>
-                    <ul className="list-disc list-inside space-y-1 ml-2">
-                      <li>Use Solidity version ^0.8.0</li>
-                      <li>Follow best practices for gas optimization</li>
-                      <li>Include proper event emission</li>
+                    <h3 className="font-semibold text-white mb-3 uppercase text-sm tracking-wide">Constraints</h3>
+                    <ul className="space-y-2 text-sm">
+                      {/* <li className="flex items-start gap-2">
+                        <span className="text-gray-600 mt-1">•</span>
+                        <span>Use Solidity version ^0.8.0</span>
+                      </li> */}
+                      <li className="flex items-start gap-2">
+                        <span className="text-gray-600 mt-1">•</span>
+                        <span>Follow best practices for gas optimization</span>
+                      </li>
+                      {/* <li className="flex items-start gap-2">
+                        <span className="text-gray-600 mt-1">•</span>
+                        <span>Include proper event emission</span>
+                      </li> */}
                     </ul>
                   </div>
                 </div>
@@ -421,8 +430,8 @@ contract SimpleStorage {
 
             {activeTab === 'solution' && (
               <div className="space-y-4">
-                <h3 className="text-xl font-semibold text-gray-900">Solution Approach</h3>
-                <p className="text-gray-700">
+                <h3 className="text-xl font-semibold text-white">Solution Approach</h3>
+                <p className="text-gray-400">
                   The solution involves creating a basic smart contract with state variables and functions. Complete the challenge first before viewing hints!
                 </p>
               </div>
@@ -430,12 +439,12 @@ contract SimpleStorage {
 
             {activeTab === 'tests' && (
               <div className="space-y-4">
-                <h3 className="text-xl font-semibold text-gray-900">Test Cases</h3>
+                <h3 className="text-xl font-semibold text-white">Test Cases</h3>
                 <div className="space-y-3">
                   {predefinedTests.map((test, idx) => (
-                    <div key={idx} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-                      <div className="font-medium text-gray-900 mb-2">Test {idx + 1}: {test.name}</div>
-                      <div className="text-sm text-gray-600 font-mono">
+                    <div key={idx} className="border border-gray-800 rounded bg-[#0f0f0f] p-4">
+                      <div className="font-medium text-white mb-2">Test {idx + 1}: {test.name}</div>
+                      <div className="text-sm text-gray-400 font-mono">
                         {test.function}({test.args?.join(', ') || ''})
                       </div>
                     </div>
@@ -446,17 +455,38 @@ contract SimpleStorage {
           </div>
         </div>
 
-        {/* Right Panel - Code Editor */}
-        <div className="w-1/2 flex flex-col bg-white">
-          {/* Editor Tabs */}
-          <div className="flex items-center justify-between border-b border-gray-200 bg-gray-50 px-4 py-2">
-            <div className="flex items-center gap-2 text-sm">
-              <FileCode size={16} className="text-gray-600" />
-              <span className="text-gray-700 font-medium">contract.sol</span>
+        {/* Right Panel */}
+        <div className="w-full flex flex-col bg-[#0a0a0a]">
+          <div className="flex items-center justify-between border-b border-gray-800 bg-[#0f0f0f] px-4 py-3">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 text-sm">
+                <FileCode size={16} className="text-gray-500" />
+                <span className="text-gray-300 font-medium">contract.sol</span>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button className="px-3 py-1.5 text-xs text-gray-400 hover:text-white transition-colors flex items-center gap-1">
+                <Code2 size={14} /> CODE
+              </button>
+              <button className="px-3 py-1.5 text-xs text-gray-400 hover:text-white transition-colors">
+                PREVIEW
+              </button>
+              <button
+                onClick={runTests}
+                disabled={!compiledData || testing}
+                className="px-4 py-1.5 bg-[#00d9a3] text-black text-xs font-medium rounded hover:bg-[#00c490] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5"
+              >
+                <Play size={12} /> {testing ? "RUNNING..." : "RUN TESTS"}
+              </button>
+              <button
+                disabled={!compiledData}
+                className="px-4 py-1.5 bg-[#1a1a1a] text-white text-xs font-medium rounded hover:bg-[#252525] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5"
+              >
+                SUBMIT
+              </button>
             </div>
           </div>
 
-          {/* Code Editor */}
           <div className="flex-1 overflow-hidden">
             <textarea
               value={code}
@@ -467,16 +497,15 @@ contract SimpleStorage {
             />
           </div>
 
-          {/* Bottom Console */}
-          <div className="border-t border-gray-200 bg-white" style={{ height: '200px' }}>
-            <div className="flex items-center justify-between border-b border-gray-200 bg-gray-50 px-4 py-2">
+          <div className="border-t border-gray-800 bg-[#0a0a0a]" style={{ height: '200px' }}>
+            <div className="flex items-center justify-between border-b border-gray-800 bg-[#0f0f0f] px-4 py-2">
               <div className="flex items-center gap-2">
-                <Terminal size={16} className="text-gray-600" />
-                <span className="text-sm font-medium text-gray-700">Console</span>
+                <Terminal size={16} className="text-gray-500" />
+                <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">Console Output</span>
               </div>
               <button 
                 onClick={() => setOutput([])}
-                className="text-xs text-gray-500 hover:text-gray-700"
+                className="text-xs text-gray-500 hover:text-gray-300 transition-colors"
               >
                 Clear
               </button>
@@ -487,27 +516,26 @@ contract SimpleStorage {
                   key={i}
                   className={`text-xs font-mono ${
                     log.type === "success"
-                      ? "text-green-600"
+                      ? "text-[#00d9a3]"
                       : log.type === "error"
-                      ? "text-red-600"
+                      ? "text-red-400"
                       : log.type === "warning"
-                      ? "text-yellow-600"
-                      : "text-gray-600"
+                      ? "text-yellow-500"
+                      : "text-gray-500"
                   }`}
                 >
-                  <span className="text-gray-400">[{log.timestamp}]</span> {log.message}
+                  <span className="text-gray-600">[{log.timestamp}]</span> {log.message}
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className="border-t border-gray-200 bg-white px-4 py-3 flex items-center justify-between">
+          <div className="border-t border-gray-800 bg-[#0f0f0f] px-4 py-3 flex items-center justify-between">
             <div className="flex gap-2">
               <button
                 onClick={compile}
                 disabled={compiling}
-                className="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded text-sm font-medium hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                className="bg-[#1a1a1a] border border-gray-700 text-gray-300 px-4 py-2 rounded text-xs font-medium hover:bg-[#252525] hover:border-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
               >
                 <Play size={14} /> {compiling ? "Compiling..." : "Compile"}
               </button>
@@ -515,45 +543,37 @@ contract SimpleStorage {
               <button
                 onClick={analyzeContract}
                 disabled={!compiledData}
-                className="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded text-sm font-medium hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                className="bg-[#1a1a1a] border border-gray-700 text-gray-300 px-4 py-2 rounded text-xs font-medium hover:bg-[#252525] hover:border-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
               >
                 <AlertTriangle size={14} /> Analyze
               </button>
             </div>
 
             <div className="flex gap-2">
-              <button
-                onClick={runTests}
-                disabled={!compiledData || testing}
-                className="bg-[#34a85a] text-white px-6 py-2 rounded text-sm font-medium hover:bg-[#2d8f4d] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
-              >
-                <FlaskConical size={14} /> {testing ? "Running..." : "Run Tests"}
-              </button>
-            </div>
-          </div>
-
-          {/* Success Banner */}
-          {compiledData && (
-            <div className="border-t border-green-200 bg-green-50 px-4 py-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-green-800">
-                  <CheckCircle size={16} />
-                  <span className="text-sm font-medium">Compilation Successful: {compiledData.name}</span>
-                </div>
-                <div className="flex gap-2">
+              {compiledData && (
+                <>
                   <button
                     onClick={downloadABI}
-                    className="text-xs text-green-700 hover:text-green-900 flex items-center gap-1"
+                    className="text-xs text-gray-400 hover:text-[#00d9a3] flex items-center gap-1 transition-colors"
                   >
                     <Download size={12} /> ABI
                   </button>
                   <button
                     onClick={downloadBytecode}
-                    className="text-xs text-green-700 hover:text-green-900 flex items-center gap-1"
+                    className="text-xs text-gray-400 hover:text-[#00d9a3] flex items-center gap-1 transition-colors"
                   >
                     <Download size={12} /> Bytecode
                   </button>
-                </div>
+                </>
+              )}
+            </div>
+          </div>
+
+          {compiledData && (
+            <div className="border-t border-[#00d9a3] border-opacity-30 bg-[#00d9a3] bg-opacity-5 px-4 py-3">
+              <div className="flex items-center gap-2 text-[#00d9a3]">
+                <CheckCircle size={16} />
+                <span className="text-sm font-medium">Compilation Successful: {compiledData.name}</span>
               </div>
             </div>
           )}
@@ -561,5 +581,4 @@ contract SimpleStorage {
       </div>
     </div>
   );
-};
-
+}
