@@ -1,4 +1,4 @@
-# DevDAO(CodeJudge) - **TanStack Start Hackathon Submission**
+# DevDAO(CodeJudge) 
 
 <img width="1457" height="760" alt="image" src="https://github.com/user-attachments/assets/e17c3e00-e3c0-4f62-b245-b11f4d656ca7" />
 
