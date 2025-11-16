@@ -1,4 +1,4 @@
-# DevDAO(CodeJudge) 
+# CodeJudge
 
 <img width="1146" height="672" alt="image" src="https://github.com/user-attachments/assets/03ebbdf9-a3e2-4046-9a18-81d75ef88b60" />
 
