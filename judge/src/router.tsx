@@ -4,6 +4,8 @@ import { routerWithQueryClient } from '@tanstack/react-router-with-query'
 import { ConvexQueryClient } from '@convex-dev/react-query'
 import { ConvexProvider } from 'convex/react'
 import { routeTree } from './routeTree.gen'
+import * as React from 'react'
+import * as Sentry from "@sentry/react";
 
 export function getRouter() {
   const CONVEX_URL = (import.meta as any).env.VITE_CONVEX_URL!
@@ -23,6 +25,17 @@ export function getRouter() {
   })
   convexQueryClient.connect(queryClient)
 
+
+  Sentry.init({
+    dsn:import.meta.env.VITE_SENTRY_DSN,
+    integrations: [
+      Sentry.browserTracingIntegration(),
+      Sentry.replayIntegration(),
+    ],
+    tracesSampleRate: 1.0, // Adjust in production (0.1 = 10%)
+    replaysSessionSampleRate: 0.1,
+    replaysOnErrorSampleRate: 1.0,
+  });
   const router = routerWithQueryClient(
     createRouter({
       routeTree,

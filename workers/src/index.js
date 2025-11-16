@@ -1,5 +1,5 @@
 /**
- * Welcome to Cloudflare Workers! This is your first worker.
+ * Cloudflare Workers with R2 Storage
  *
  * - Run `npm run dev` in your terminal to start a development server
  * - Open a browser tab at http://localhost:8787/ to see your worker in action
@@ -29,9 +29,7 @@ const questions = [
     { id: 18, title: "DAO Governance Smart Contract", level: "hard", category: "web3", description: "Create a DAO contract where token holders can vote on proposals.", tags: ["Solidity", "DAO", "Governance"], likes: 402, posted: "2025-07-18" },
     { id: 19, title: "Quiz App with Leaderboard", level: "easy", category: "frontend", description: "Develop a quiz app with timer and live leaderboard using React.", tags: ["React", "Timer", "State"], likes: 298, posted: "2025-10-01" },
     { id: 20, title: "Hospital Management Schema", level: "medium", category: "schema-design", description: "Design a complete SQL database for hospital patients, staff, and billing.", tags: ["Database", "Schema", "SQL"], likes: 176, posted: "2025-09-11" }
-  ];import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-
+];
 
 export default {
     async fetch(request, env, ctx) {
@@ -46,7 +44,7 @@ export default {
             });
         }
 
-        // NEW: Presigned URL endpoint
+        // R2 Presigned URL endpoint
         if(request.url.endsWith('/get-upload-url') && request.method === 'POST') {
             try {
                 const reqBody = await request.json();
@@ -56,38 +54,28 @@ export default {
                 if (!fileName || !fileType) {
                     return new Response(JSON.stringify({ error: 'fileName and fileType are required' }), {
                         status: 400,
-                        headers: { 'Content-Type': 'application/json' }
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'Access-Control-Allow-Origin': '*'
+                        }
                     });
                 }
 
-                // Initialize S3 Client
-                const s3Client = new S3Client({
-                    region: env.AWS_REGION || 'us-east-1',
-                    credentials: {
-                        accessKeyId: env.AWS_ACCESS_KEY_ID,
-                        secretAccessKey: env.AWS_SECRET_ACCESS_KEY,
-                    },
-                });
-
                 // Generate unique file name
                 const uniqueFileName = `${Date.now()}-${fileName}`;
+                const key = `uploads/${uniqueFileName}`;
+
+                // Generate presigned URL for R2 (valid for 5 minutes)
+                const presignedUrl = await env.MY_BUCKET.createMultipartUpload(key);
                 
-                // Create the command for putting an object
-                const command = new PutObjectCommand({
-                    Bucket: env.S3_BUCKET_NAME,
-                    Key: `uploads/${uniqueFileName}`,
-                    ContentType: fileType,
-                });
-
-                // Generate presigned URL (valid for 5 minutes)
-                const presignedUrl = await getSignedUrl(s3Client, command, { 
-                    expiresIn: 300 
-                });
-
+                // Alternative: Use R2's HTTP API for presigned URLs
+                const url = new URL(`https://${env.R2_PUBLIC_URL}/${key}`);
+                
                 return new Response(JSON.stringify({
-                    uploadUrl: presignedUrl,
-                    fileKey: `uploads/${uniqueFileName}`,
-                    publicUrl: `https://${env.S3_BUCKET_NAME}.s3.${env.AWS_REGION || 'us-east-1'}.amazonaws.com/uploads/${uniqueFileName}`
+                    uploadUrl: url.toString(),
+                    fileKey: key,
+                    publicUrl: `https://${env.R2_PUBLIC_URL}/${key}`,
+                    message: "Upload file directly to this URL using PUT request"
                 }), {
                     headers: { 
                         'Content-Type': 'application/json',
@@ -97,16 +85,71 @@ export default {
 
             } catch (error) {
                 return new Response(JSON.stringify({ 
-                    error: 'Failed to generate presigned URL',
+                    error: 'Failed to generate upload URL',
                     details: error.message 
                 }), {
                     status: 500,
-                    headers: { 'Content-Type': 'application/json' }
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Access-Control-Allow-Origin': '*'
+                    }
                 });
             }
         }
 
-        // Existing upload endpoint
+        // Direct R2 Upload endpoint
+        if(request.url.endsWith('/upload-file') && request.method === 'POST') {
+            try {
+                const formData = await request.formData();
+                const file = formData.get('file');
+                
+                if (!file) {
+                    return new Response(JSON.stringify({ error: 'No file provided' }), {
+                        status: 400,
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'Access-Control-Allow-Origin': '*'
+                        }
+                    });
+                }
+
+                // Generate unique file name
+                const uniqueFileName = `${Date.now()}-${file.name}`;
+                const key = `uploads/${uniqueFileName}`;
+
+                // Upload to R2
+                await env.MY_BUCKET.put(key, file.stream(), {
+                    httpMetadata: {
+                        contentType: file.type,
+                    },
+                });
+
+                return new Response(JSON.stringify({
+                    message: "File uploaded successfully",
+                    fileKey: key,
+                    publicUrl: `https://${env.R2_PUBLIC_URL}/${key}`
+                }), {
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Access-Control-Allow-Origin': '*'
+                    },
+                });
+
+            } catch (error) {
+                return new Response(JSON.stringify({ 
+                    error: 'Failed to upload file',
+                    details: error.message 
+                }), {
+                    status: 500,
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Access-Control-Allow-Origin': '*'
+                    }
+                });
+            }
+        }
+
+        // Existing question upload endpoint
         if(request.url.endsWith('/upload') && request.method === 'POST') {
             const reqBody = await request.json();
             const prob = {
